@@ -16,8 +16,9 @@ AZURE_REGION = st.secrets["azure_speech"]["region"]
 # --- 3. Load the Student Roster from CSVs (AUTO-DETECT & FORGIVING MODE) ---
 @st.cache_data
 def load_roster():
-    female_voices = ["en-GB-MaisieNeural", "en-GB-SoniaNeural", "en-US-JennyNeural", "en-US-JaneNeural", "en-AU-NatashaNeural", "en-CA-ClaraNeural", "en-IN-NeerjaNeural"]
-    male_voices = ["en-GB-RyanNeural", "en-GB-ThomasNeural", "en-US-DavisNeural", "en-US-GuyNeural", "en-AU-WilliamNeural", "en-CA-LiamNeural", "en-IN-PrabhatNeural"]
+    # Removed the Indian neural voices from both arrays
+    female_voices = ["en-GB-MaisieNeural", "en-GB-SoniaNeural", "en-US-JennyNeural", "en-US-JaneNeural", "en-AU-NatashaNeural", "en-CA-ClaraNeural"]
+    male_voices = ["en-GB-RyanNeural", "en-GB-ThomasNeural", "en-US-DavisNeural", "en-US-GuyNeural", "en-AU-WilliamNeural", "en-CA-LiamNeural"]
     
     students = []
     
