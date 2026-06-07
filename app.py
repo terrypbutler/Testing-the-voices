@@ -13,7 +13,7 @@ st.write("Interact with distinct student personas powered by Azure Neural Voices
 AZURE_KEY = st.secrets["azure_speech"]["key"]
 AZURE_REGION = st.secrets["azure_speech"]["region"]
 
-# --- 3. Load the Student Roster from CSVs ---
+# --- 3. Load the Student Roster from CSVs (AUTO-DETECT MODE) ---
 @st.cache_data
 def load_roster():
     female_voices = ["en-GB-MaisieNeural", "en-GB-SoniaNeural", "en-US-JennyNeural", "en-US-JaneNeural", "en-AU-NatashaNeural", "en-CA-ClaraNeural", "en-IN-NeerjaNeural"]
@@ -21,51 +21,53 @@ def load_roster():
     
     students = []
     
-    datasets = [
-        {"file": "Virtual_Students - Year 7.csv", "year": "Year 7", "pitch_min": 0, "pitch_max": 15},
-        {"file": "Virtual_Students - year9.csv", "year": "Year 10", "pitch_min": -15, "pitch_max": 0}
-    ]
+    # 1. Automatically scan the GitHub folder for any CSV or CFV files
+    available_files = [f for f in os.listdir() if f.lower().endswith(('.csv', '.cfv'))]
     
+    # 2. Fuzzy-match the files based on numbers in their names
+    year7_file = next((f for f in available_files if '7' in f), None)
+    year10_file = next((f for f in available_files if '9' in f or '10' in f), None)
+    
+    # 3. Build the dataset map dynamically based only on files that actually exist
+    datasets = []
+    if year7_file:
+        datasets.append({"file": year7_file, "year": "Year 7", "pitch_min": 0, "pitch_max": 15})
+    if year10_file:
+        datasets.append({"file": year10_file, "year": "Year 10", "pitch_min": -15, "pitch_max": 0})
+        
+    # Process the files we found
     for dataset in datasets:
-        try:
-            with open(dataset["file"], mode='r', encoding='utf-8-sig') as file:
-                reader = csv.DictReader(file)
-                
-                for row in reader:
-                    if not row.get("Student ID", "").strip():
-                        continue
-                        
-                    # Seed the randomizer so voices remain consistent
-                    random.seed(row["Student ID"])
-                    
-                    gender = row.get("Gender", "").strip().upper()
-                    if gender == "M":
-                        voice = random.choice(male_voices)
-                    elif gender == "F":
-                        voice = random.choice(female_voices)
-                    else:
-                        voice = random.choice(female_voices + male_voices)
-                        
-                    # Apply the age-specific pitch rules defined in the dataset dictionary
-                    pitch_val = random.randint(dataset["pitch_min"], dataset["pitch_max"])
-                    rate_val = random.randint(-10, 10)
-                    
-                    students.append({
-                        "id": row["Student ID"],
-                        "name": f"{row['Full Name']} ({dataset['year']})", 
-                        "voice": voice,
-                        "year_group": dataset["year"], 
-                        "default_style": "cheerful",
-                        "pitch_adjust": f"+{pitch_val}%" if pitch_val > 0 else f"{pitch_val}%",
-                        "rate_adjust": f"+{rate_val}%" if rate_val > 0 else f"{rate_val}%",
-                        "misconception": f"[{dataset['year']}] {row.get('Transition Portrait', '')} MATHS: {row.get('Maths', '')}"
-                    })
-        except FileNotFoundError:
-            # The "File Radar" - Shows you exactly what Streamlit sees in the folder
-            available_files = [f for f in os.listdir() if f.endswith('.csv') or f.endswith('.cfv')]
-            st.warning(f"Could not find the exact file: `{dataset['file']}`")
-            st.info(f"**Here are the data files I can see in your GitHub folder right now:** {', '.join(available_files)}")
+        with open(dataset["file"], mode='r', encoding='utf-8-sig') as file:
+            reader = csv.DictReader(file)
             
+            for row in reader:
+                if not row.get("Student ID", "").strip():
+                    continue
+                    
+                random.seed(row["Student ID"])
+                
+                gender = row.get("Gender", "").strip().upper()
+                if gender == "M":
+                    voice = random.choice(male_voices)
+                elif gender == "F":
+                    voice = random.choice(female_voices)
+                else:
+                    voice = random.choice(female_voices + male_voices)
+                    
+                pitch_val = random.randint(dataset["pitch_min"], dataset["pitch_max"])
+                rate_val = random.randint(-10, 10)
+                
+                students.append({
+                    "id": row["Student ID"],
+                    "name": f"{row['Full Name']} ({dataset['year']})", 
+                    "voice": voice,
+                    "year_group": dataset["year"], 
+                    "default_style": "cheerful",
+                    "pitch_adjust": f"+{pitch_val}%" if pitch_val > 0 else f"{pitch_val}%",
+                    "rate_adjust": f"+{rate_val}%" if rate_val > 0 else f"{rate_val}%",
+                    "misconception": f"[{dataset['year']}] {row.get('Transition Portrait', '')} MATHS: {row.get('Maths', '')}"
+                })
+                
     return students
 
 # Initialize data and dictionary mapping
@@ -86,8 +88,13 @@ if year_filter == "All":
 else:
     filtered_roster = {name: data for name, data in roster_dict.items() if data["year_group"] == year_filter}
 
+# --- NEW: Safe Sidebar Error Handling ---
+# If the app still can't find the Year 10 file, it will display the exact files it sees in the sidebar!
 if not filtered_roster:
-    st.sidebar.error(f"No students found for {year_filter}. Look at the yellow warning box above to find your exact filename and update Line 27 in app.py!")
+    available_csvs = [f for f in os.listdir() if f.lower().endswith(('.csv', '.cfv'))]
+    st.sidebar.error(f"No students loaded for {year_filter}.")
+    st.sidebar.info(f"**Files currently detected in GitHub:** {', '.join(available_csvs) if available_csvs else 'None found!'}")
+    st.sidebar.write("If your file isn't listed above, Streamlit can't see it. Make sure it was uploaded to the main branch.")
     st.stop()
 
 selected_name = st.sidebar.selectbox("Select a Student", list(filtered_roster.keys()))
