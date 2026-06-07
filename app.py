@@ -1,5 +1,6 @@
 import streamlit as st
-import json
+import csv
+import random
 import azure.cognitiveservices.speech as speechsdk
 
 # --- 1. Page Configuration ---
@@ -11,34 +12,65 @@ st.write("Interact with distinct student personas powered by Azure Neural Voices
 AZURE_KEY = st.secrets["azure_speech"]["key"]
 AZURE_REGION = st.secrets["azure_speech"]["region"]
 
-# --- 3. Load the Student Roster ---
+# --- 3. Load the Student Roster from CSV ---
 @st.cache_data
 def load_roster():
-    with open('students.json', 'r') as file:
-        return json.load(file)["students"]
+    female_voices = ["en-GB-MaisieNeural", "en-GB-SoniaNeural", "en-US-JennyNeural", "en-US-JaneNeural", "en-AU-NatashaNeural", "en-CA-ClaraNeural", "en-IN-NeerjaNeural"]
+    male_voices = ["en-GB-RyanNeural", "en-GB-ThomasNeural", "en-US-DavisNeural", "en-US-GuyNeural", "en-AU-WilliamNeural", "en-CA-LiamNeural", "en-IN-PrabhatNeural"]
+    
+    students = []
+    
+    # Read the uploaded CSV file directly
+    with open('year7_data.csv', mode='r', encoding='utf-8-sig') as file:
+        reader = csv.DictReader(file)
+        
+        for row in reader:
+            if not row.get("Student ID", "").strip():
+                continue
+                
+            # Seed the randomizer with the Student ID so their voice never changes between sessions
+            random.seed(row["Student ID"])
+            
+            gender = row.get("Gender", "").strip().upper()
+            if gender == "M":
+                voice = random.choice(male_voices)
+            elif gender == "F":
+                voice = random.choice(female_voices)
+            else:
+                voice = random.choice(female_voices + male_voices)
+                
+            pitch_val = random.randint(-10, 10)
+            rate_val = random.randint(-10, 10)
+            
+            students.append({
+                "id": row["Student ID"],
+                "name": row["Full Name"],
+                "voice": voice,
+                "default_style": "cheerful",
+                "pitch_adjust": f"+{pitch_val}%" if pitch_val > 0 else f"{pitch_val}%",
+                "rate_adjust": f"+{rate_val}%" if rate_val > 0 else f"{rate_val}%",
+                "misconception": f"{row.get('Transition Portrait', '')} MATHS: {row.get('Maths', '')}"
+            })
+            
+    return students
 
 students_data = load_roster()
-
-# Create a dictionary to easily look up a student by their name
 roster_dict = {student["name"]: student for student in students_data}
 
 # --- 4. Sidebar: Student Selection & Profile ---
 st.sidebar.header("Classroom Roster")
 selected_name = st.sidebar.selectbox("Select a Student", list(roster_dict.keys()))
 
-# Get the active student's full profile
 active_student = roster_dict[selected_name]
 
-# Display their pedagogical profile so the trainee knows who they are dealing with
 st.sidebar.subheader("Pedagogical Profile")
 st.sidebar.info(active_student.get("misconception", "No notes provided."))
 st.sidebar.caption(f"Voice: {active_student['voice']} | Pitch: {active_student['pitch_adjust']} | Rate: {active_student['rate_adjust']}")
 
-# Allow overriding the student's default emotion for testing
 current_emotion = st.sidebar.selectbox(
     "Current Emotional State",
     ["cheerful", "sad", "fearful", "angry", "whispering", "excited"],
-    index=["cheerful", "sad", "fearful", "angry", "whispering", "excited"].index(active_student.get("default_style", "cheerful"))
+    index=0
 )
 intensity = st.sidebar.slider("Emotion Intensity", min_value=0.5, max_value=2.0, value=1.0, step=0.1)
 
@@ -52,13 +84,11 @@ text_input = st.text_area(
 if st.button(f"Generate {active_student['name']}'s Voice"):
     with st.spinner(f"Generating audio for {active_student['name']}..."):
         
-        # Configure Azure Speech Stream
         speech_config = speechsdk.SpeechConfig(subscription=AZURE_KEY, region=AZURE_REGION)
         pull_stream = speechsdk.audio.PullAudioOutputStream()
         stream_config = speechsdk.audio.AudioOutputConfig(stream=pull_stream)
         synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=stream_config)
         
-        # Construct the dynamic SSML payload using the JSON data
         ssml_payload = f"""
         <speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='https://www.w3.org/2001/mstts' xml:lang='en-US'>
             <voice name='{active_student['voice']}'>
@@ -71,7 +101,6 @@ if st.button(f"Generate {active_student['name']}'s Voice"):
         </speak>
         """
         
-        # Execute synthesis
         result = synthesizer.speak_ssml_async(ssml_payload).get()
         
         if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
