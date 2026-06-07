@@ -20,10 +20,10 @@ def load_roster():
     
     students = []
     
-# Updated to load Year 7 normally, and Year 10 from the 'year9.csv' file
+    # Updated to load Year 7 normally, and Year 10 from the 'Virtual_Students - year9.csv' file
     datasets = [
         {"file": "Virtual_Students - Year 7.csv", "year": "Year 7", "pitch_min": 0, "pitch_max": 15},
-        {"file": "year9.csv", "year": "Year 10", "pitch_min": -15, "pitch_max": 0}
+        {"file": "Virtual_Students - year9.csv", "year": "Year 10", "pitch_min": -15, "pitch_max": 0}
     ]
     
     for dataset in datasets:
@@ -73,7 +73,7 @@ roster_dict = {student["name"]: student for student in students_data}
 # --- 4. Sidebar: Student Selection & Profile ---
 st.sidebar.header("Classroom Roster")
 
-# UI Filter updated to remove the Year 9 selection bubble
+# UI Filter updated to match the datasets
 year_filter = st.sidebar.radio(
     "Filter by Year Group",
     ["All", "Year 7", "Year 10"],
