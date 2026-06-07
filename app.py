@@ -1,5 +1,5 @@
 import streamlit as st
-import azure.cognitiveservices-speech as speechsdk
+import azure.cognitiveservices.speech as speechsdk
 
 # 1. Page Configuration
 st.title("Virtual Student Voice Sandbox")
