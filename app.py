@@ -1,3 +1,17 @@
+import streamlit as st
+import csv
+import random
+import azure.cognitiveservices.speech as speechsdk
+
+# --- 1. Page Configuration ---
+st.set_page_config(page_title="Virtual Classroom Simulator", layout="wide")
+st.title("Virtual Student Simulator")
+st.write("Interact with distinct student personas powered by Azure Neural Voices.")
+
+# --- 2. Retrieve Credentials ---
+AZURE_KEY = st.secrets["azure_speech"]["key"]
+AZURE_REGION = st.secrets["azure_speech"]["region"]
+
 # --- 3. Load the Student Roster from CSVs ---
 @st.cache_data
 def load_roster():
@@ -50,3 +64,9 @@ def load_roster():
             st.warning(f"Could not find {dataset['file']}. Please ensure it is uploaded to GitHub.")
             
     return students
+
+# Initialize data and dictionary mapping
+students_data = load_roster()
+roster_dict = {student["name"]: student for student in students_data}
+
+# (The rest of your code for Sidebar, Main Text Area, and Audio Generation stays exactly the same below here!)
