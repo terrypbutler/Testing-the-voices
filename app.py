@@ -20,10 +20,10 @@ def load_roster():
     
     students = []
     
-    # Define the files and their specific pitch boundaries for age simulation
+# Define the files and their specific pitch boundaries for age simulation
     datasets = [
         {"file": "Virtual_Students - Year 7.csv", "year": "Year 7", "pitch_min": 0, "pitch_max": 15},
-        {"file": "Virtual_Students - Year 10.csv", "year": "Year 10", "pitch_min": -15, "pitch_max": 0}
+        {"file": "Virtual_Students - year9.csv", "year": "Year 9", "pitch_min": -10, "pitch_max": 5}
     ]
     
     for dataset in datasets:
