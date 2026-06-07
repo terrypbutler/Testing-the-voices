@@ -21,7 +21,7 @@ def load_roster():
     students = []
     
     # Read the uploaded CSV file directly
-    with open('year7_data.csv', mode='r', encoding='utf-8-sig') as file:
+    with open('Virtual_Students - Year 7.csv', mode='r', encoding='utf-8-sig') as file:
         reader = csv.DictReader(file)
         
         for row in reader:
