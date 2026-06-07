@@ -39,14 +39,14 @@ text_input = st.text_area(
 if st.button("Generate Student Voice"):
     with st.spinner("Synthesizing speech..."):
         
-        # Configure Azure Speech to output to a memory stream instead of local speakers
+        # Configure Azure Speech
         speech_config = speechsdk.SpeechConfig(subscription=AZURE_KEY, region=AZURE_REGION)
-        audio_config = speechsdk.audio.AudioOutputConfig(use_default_speaker=False)
         
         # We use a PullAudioOutputStream to catch the bytes in memory
         pull_stream = speechsdk.audio.PullAudioOutputStream()
         stream_config = speechsdk.audio.AudioOutputConfig(stream=pull_stream)
         
+        # Pass the stream_config directly into the synthesizer
         synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=stream_config)
         
         # Construct the dynamic SSML payload matching the sidebar configurations
