@@ -20,10 +20,10 @@ def load_roster():
     
     students = []
     
-    # Load all three files with their respective age-pitch brackets
+# Updated to load Year 7 normally, and Year 10 from the 'year9.csv' file
     datasets = [
         {"file": "Virtual_Students - Year 7.csv", "year": "Year 7", "pitch_min": 0, "pitch_max": 15},
-        {"file": "Virtual_Students - year9.csv", "year": "Year 9", "pitch_min": -10, "pitch_max": 5},
+        {"file": "year9.csv", "year": "Year 10", "pitch_min": -15, "pitch_max": 0}
     ]
     
     for dataset in datasets:
@@ -55,7 +55,7 @@ def load_roster():
                         # Add the Year Group to the display name for the sidebar
                         "name": f"{row['Full Name']} ({dataset['year']})", 
                         "voice": voice,
-                        "year_group": dataset["year"], # Added for the UI filter
+                        "year_group": dataset["year"], 
                         "default_style": "cheerful",
                         "pitch_adjust": f"+{pitch_val}%" if pitch_val > 0 else f"{pitch_val}%",
                         "rate_adjust": f"+{rate_val}%" if rate_val > 0 else f"{rate_val}%",
@@ -73,10 +73,10 @@ roster_dict = {student["name"]: student for student in students_data}
 # --- 4. Sidebar: Student Selection & Profile ---
 st.sidebar.header("Classroom Roster")
 
-# UI Filter to quickly swap between cohorts
+# UI Filter updated to remove the Year 9 selection bubble
 year_filter = st.sidebar.radio(
     "Filter by Year Group",
-    ["All", "Year 7", "Year 9", "Year 10"],
+    ["All", "Year 7", "Year 10"],
     horizontal=True
 )
 
@@ -88,7 +88,7 @@ else:
 
 # Safety catch in case a CSV failed to load
 if not filtered_roster:
-    st.sidebar.error(f"No students found for {year_filter}. Check that the CSV file is uploaded to GitHub.")
+    st.sidebar.error(f"No students found for {year_filter}. Check that the data file is uploaded to GitHub.")
     st.stop()
 
 selected_name = st.sidebar.selectbox("Select a Student", list(filtered_roster.keys()))
@@ -113,7 +113,7 @@ text_input = st.text_area(
 )
 
 # --- 6. Generate the Audio ---
-if st.button(f"Generate Voice"):
+if st.button("Generate Voice"):
     with st.spinner(f"Generating audio for {active_student['name']}..."):
         
         speech_config = speechsdk.SpeechConfig(subscription=AZURE_KEY, region=AZURE_REGION)
