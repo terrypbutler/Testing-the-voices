@@ -20,10 +20,11 @@ def load_roster():
     
     students = []
     
-    # Define the files and their specific pitch boundaries for age simulation
+    # Load all three files with their respective age-pitch brackets
     datasets = [
         {"file": "Virtual_Students - Year 7.csv", "year": "Year 7", "pitch_min": 0, "pitch_max": 15},
-        {"file": "Virtual_Students - year9.csv", "year": "Year 9", "pitch_min": -10, "pitch_max": 5}
+        {"file": "Virtual_Students - year9.csv", "year": "Year 9", "pitch_min": -10, "pitch_max": 5},
+        {"file": "Virtual_Students - Year 10.csv", "year": "Year 10", "pitch_min": -15, "pitch_max": 0}
     ]
     
     for dataset in datasets:
@@ -55,6 +56,7 @@ def load_roster():
                         # Add the Year Group to the display name for the sidebar
                         "name": f"{row['Full Name']} ({dataset['year']})", 
                         "voice": voice,
+                        "year_group": dataset["year"], # Added for the UI filter
                         "default_style": "cheerful",
                         "pitch_adjust": f"+{pitch_val}%" if pitch_val > 0 else f"{pitch_val}%",
                         "rate_adjust": f"+{rate_val}%" if rate_val > 0 else f"{rate_val}%",
@@ -71,9 +73,28 @@ roster_dict = {student["name"]: student for student in students_data}
 
 # --- 4. Sidebar: Student Selection & Profile ---
 st.sidebar.header("Classroom Roster")
-selected_name = st.sidebar.selectbox("Select a Student", list(roster_dict.keys()))
 
-active_student = roster_dict[selected_name]
+# UI Filter to quickly swap between cohorts
+year_filter = st.sidebar.radio(
+    "Filter by Year Group",
+    ["All", "Year 7", "Year 9", "Year 10"],
+    horizontal=True
+)
+
+# Apply the filter to the dictionary
+if year_filter == "All":
+    filtered_roster = roster_dict
+else:
+    filtered_roster = {name: data for name, data in roster_dict.items() if data["year_group"] == year_filter}
+
+# Safety catch in case a CSV failed to load
+if not filtered_roster:
+    st.sidebar.error(f"No students found for {year_filter}. Check that the CSV file is uploaded to GitHub.")
+    st.stop()
+
+selected_name = st.sidebar.selectbox("Select a Student", list(filtered_roster.keys()))
+
+active_student = filtered_roster[selected_name]
 
 st.sidebar.subheader("Pedagogical Profile")
 st.sidebar.info(active_student.get("misconception", "No notes provided."))
