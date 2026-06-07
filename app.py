@@ -1,6 +1,7 @@
 import streamlit as st
 import csv
 import random
+import os
 import azure.cognitiveservices.speech as speechsdk
 
 # --- 1. Page Configuration ---
@@ -20,7 +21,6 @@ def load_roster():
     
     students = []
     
-    # Updated to load Year 7 normally, and Year 10 from the 'Virtual_Students - year9.csv' file
     datasets = [
         {"file": "Virtual_Students - Year 7.csv", "year": "Year 7", "pitch_min": 0, "pitch_max": 15},
         {"file": "Virtual_Students - year9.csv", "year": "Year 10", "pitch_min": -15, "pitch_max": 0}
@@ -52,7 +52,6 @@ def load_roster():
                     
                     students.append({
                         "id": row["Student ID"],
-                        # Add the Year Group to the display name for the sidebar
                         "name": f"{row['Full Name']} ({dataset['year']})", 
                         "voice": voice,
                         "year_group": dataset["year"], 
@@ -62,7 +61,10 @@ def load_roster():
                         "misconception": f"[{dataset['year']}] {row.get('Transition Portrait', '')} MATHS: {row.get('Maths', '')}"
                     })
         except FileNotFoundError:
-            st.warning(f"Could not find {dataset['file']}. Please ensure it is uploaded to GitHub.")
+            # The "File Radar" - Shows you exactly what Streamlit sees in the folder
+            available_files = [f for f in os.listdir() if f.endswith('.csv') or f.endswith('.cfv')]
+            st.warning(f"Could not find the exact file: `{dataset['file']}`")
+            st.info(f"**Here are the data files I can see in your GitHub folder right now:** {', '.join(available_files)}")
             
     return students
 
@@ -73,26 +75,22 @@ roster_dict = {student["name"]: student for student in students_data}
 # --- 4. Sidebar: Student Selection & Profile ---
 st.sidebar.header("Classroom Roster")
 
-# UI Filter updated to match the datasets
 year_filter = st.sidebar.radio(
     "Filter by Year Group",
     ["All", "Year 7", "Year 10"],
     horizontal=True
 )
 
-# Apply the filter to the dictionary
 if year_filter == "All":
     filtered_roster = roster_dict
 else:
     filtered_roster = {name: data for name, data in roster_dict.items() if data["year_group"] == year_filter}
 
-# Safety catch in case a CSV failed to load
 if not filtered_roster:
-    st.sidebar.error(f"No students found for {year_filter}. Check that the data file is uploaded to GitHub.")
+    st.sidebar.error(f"No students found for {year_filter}. Look at the yellow warning box above to find your exact filename and update Line 27 in app.py!")
     st.stop()
 
 selected_name = st.sidebar.selectbox("Select a Student", list(filtered_roster.keys()))
-
 active_student = filtered_roster[selected_name]
 
 st.sidebar.subheader("Pedagogical Profile")
